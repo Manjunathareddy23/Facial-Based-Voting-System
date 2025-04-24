@@ -20,7 +20,7 @@ def add_tailwind():
 
 # ------------------------
 # 💾 Save JSON data
-# ------------------------
+# -----------------------
 def save_data(data, filename):
     try:
         if os.path.exists(filename):
