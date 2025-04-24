@@ -1,6 +1,10 @@
 import streamlit as st
 import os
 import json
+import cv2
+import numpy as np
+from PIL import Image
+import mediapipe as mp
 from datetime import datetime
 from collections import Counter
 
@@ -20,7 +24,7 @@ def add_tailwind():
 
 # ------------------------
 # 💾 Save JSON data
-# -----------------------
+# ------------------------
 def save_data(data, filename):
     try:
         if os.path.exists(filename):
@@ -33,6 +37,24 @@ def save_data(data, filename):
             json.dump(existing, file, indent=4)
     except Exception as e:
         st.error(f"Error saving data to {filename}: {e}")
+
+# ------------------------
+# 🧠 Face Detection (Mediapipe)
+# ------------------------
+def detect_face_mediapipe(image_file):
+    mp_face_detection = mp.solutions.face_detection
+    mp_drawing = mp.solutions.drawing_utils
+
+    image = Image.open(image_file).convert('RGB')
+    img_np = np.array(image)
+
+    with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
+        results = face_detection.process(img_np)
+
+        if results.detections:
+            return True
+        else:
+            return False
 
 # ------------------------
 # 📝 Voter Registration
@@ -54,6 +76,12 @@ def voter_registration():
                     if any(v['voter_id'] == voter_id for v in voters):
                         st.error("This Voter ID is already registered.")
                         return
+
+                # Face detection
+                if not detect_face_mediapipe(uploaded_photo):
+                    st.error("No face detected. Please upload a clear image with your face visible.")
+                    return
+
                 # Save image
                 os.makedirs("faces", exist_ok=True)
                 with open(os.path.join("faces", uploaded_photo.name), "wb") as f:
@@ -78,11 +106,14 @@ def facial_data_capture():
     st.header("📷 Facial Data Capture")
     uploaded_face = st.file_uploader("Capture/Upload Facial Image", type=['jpg', 'png'])
     if uploaded_face:
-        os.makedirs("faces", exist_ok=True)
-        with open(os.path.join("faces", uploaded_face.name), "wb") as f:
-            f.write(uploaded_face.getbuffer())
-        st.image(uploaded_face, caption="Captured Face", use_column_width=True)
-        st.success("Facial data captured and stored securely.")
+        if detect_face_mediapipe(uploaded_face):
+            os.makedirs("faces", exist_ok=True)
+            with open(os.path.join("faces", uploaded_face.name), "wb") as f:
+                f.write(uploaded_face.getbuffer())
+            st.image(uploaded_face, caption="Captured Face", use_column_width=True)
+            st.success("Facial data captured and stored securely.")
+        else:
+            st.error("No face detected. Please upload a clear image.")
 
 # ------------------------
 # 🗳️ Voting Interface
@@ -91,13 +122,16 @@ def voting_interface():
     st.header("🗳️ Voting Interface")
     voter_id = st.text_input("Enter Your Voter ID to Vote")
     if voter_id:
-        # Check if already voted
         if os.path.exists("voted.json"):
             with open("voted.json", "r") as f:
                 voted_list = json.load(f)
-            if voter_id in voted_list:
-                st.warning("You have already voted.")
-                return
+        else:
+            voted_list = []
+
+        if voter_id in voted_list:
+            st.warning("You have already voted.")
+            return
+
         candidate = st.radio("Choose your candidate:", ("Candidate A", "Candidate B", "Candidate C"))
         if st.button("Cast Vote"):
             save_data(candidate, "votes.json")
