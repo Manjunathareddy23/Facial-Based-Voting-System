@@ -3,30 +3,6 @@ import os
 import json
 from datetime import datetime
 from collections import Counter
-from cryptography.fernet import Fernet
-
-# ------------------------
-# 🔐 Load or generate encryption key
-# ------------------------
-def load_key():
-    key_file = "secret.key"
-    try:
-        if os.path.exists(key_file):
-            with open(key_file, "rb") as file:
-                return file.read()
-        else:
-            key = Fernet.generate_key()
-            with open(key_file, "wb") as file:
-                file.write(key)
-            return key
-    except Exception as e:
-        st.error(f"Error loading or generating key: {e}")
-        return None
-
-key = load_key()
-if not key:
-    st.stop()  # Stop if no key can be loaded or generated
-f = Fernet(key)
 
 # ------------------------
 # 🌐 Tailwind CSS Styling
@@ -124,8 +100,7 @@ def voting_interface():
                 return
         candidate = st.radio("Choose your candidate:", ("Candidate A", "Candidate B", "Candidate C"))
         if st.button("Cast Vote"):
-            encrypted_vote = f.encrypt(candidate.encode()).decode()
-            save_data(encrypted_vote, "votes.json")
+            save_data(candidate, "votes.json")
             voted_list.append(voter_id)
             with open("voted.json", "w") as f:
                 json.dump(voted_list, f)
@@ -145,9 +120,8 @@ def result_announcement():
     st.header("📢 Result Announcement")
     if os.path.exists("votes.json"):
         with open("votes.json", "r") as file:
-            encrypted_votes = json.load(file)
-        decrypted_votes = [f.decrypt(v.encode()).decode() for v in encrypted_votes]
-        results = Counter(decrypted_votes)
+            votes = json.load(file)
+        results = Counter(votes)
         st.bar_chart(results)
         st.success("Live vote count displayed.")
     else:
