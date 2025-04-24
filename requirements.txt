@@ -2,3 +2,5 @@ streamlit
 cryptography
 face_recognition
 opencv-python-headless
+matplotlib
+pillow
