@@ -1,0 +1,15 @@
+[server]
+headless = true
+port = 8501
+enableCORS = false
+
+[theme]
+base = "light"
+primaryColor = "#3b82f6"  # Tailwind's blue-500
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f9fafb"  # Tailwind's gray-50
+textColor = "#111827"  # Tailwind's gray-900
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
